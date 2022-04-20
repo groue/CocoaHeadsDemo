@@ -20,6 +20,8 @@ struct Player: Equatable, Identifiable {
     var score: Int
 }
 
+// Records
+// <https://github.com/groue/GRDB.swift/blob/master/README.md#records>
 extension Player: Codable, FetchableRecord, MutablePersistableRecord {
     enum Columns {
         static let name = Column(CodingKeys.name)
@@ -31,6 +33,8 @@ extension Player: Codable, FetchableRecord, MutablePersistableRecord {
     }
 }
 
+// Query interface requests
+// <https://github.com/groue/GRDB.swift/blob/master/README.md#requests>
 extension Player {
     enum Ordering { case byName, byScore }
     
@@ -47,6 +51,8 @@ extension Player {
 // MARK: - PlayerStore
 
 final class PlayerStore {
+    // Database Connections
+    // <https://github.com/groue/GRDB.swift/blob/master/README.md#database-connections>
     private let dbWriter: DatabaseWriter
     
     init(dbWriter: DatabaseWriter) {
@@ -54,6 +60,8 @@ final class PlayerStore {
         try! databaseMigrator.migrate(dbWriter)
     }
     
+    // Migrations
+    // <https://github.com/groue/GRDB.swift/blob/master/Documentation/Migrations.md>
     private var databaseMigrator: DatabaseMigrator {
         var migrator = DatabaseMigrator()
         migrator.registerMigration("players") { db in
@@ -81,6 +89,8 @@ final class PlayerStore {
         }
     }
     
+    // Observation de la base de données
+    // <https://github.com/groue/GRDB.swift/blob/master/README.md#valueobservation>
     func playersPublisher(ordering: Player.Ordering) -> AnyPublisher<[Player], Error> {
         ValueObservation
             .tracking(Player.order(ordering).fetchAll)
@@ -91,6 +101,8 @@ final class PlayerStore {
 
 // MARK: - SwiftUI Environment
 
+// SwiftUI environment key
+// <https://developer.apple.com/documentation/swiftui/environmentkey>
 private struct PlayerStoreKey: EnvironmentKey {
     static let defaultValue = PlayerStore.makeDemoStore(count: 4)
 }
@@ -107,6 +119,8 @@ extension EnvironmentValues {
 struct PlayerListView: View {
     @Environment(\.playerStore) var playerStore
     
+    // @Query property wrapper
+    // <http://github.com/groue/GRDBQuery>
     @Query(PlayerListRequest(ordering: .byScore), in: \.playerStore)
     var players: [Player]
     
@@ -167,6 +181,8 @@ struct PlayerListRequest {
     var ordering: Player.Ordering
 }
 
+// Queryable protocol
+// <http://github.com/groue/GRDBQuery>
 extension PlayerListRequest: Queryable {
     static var defaultValue: [Player] { [] }
     
