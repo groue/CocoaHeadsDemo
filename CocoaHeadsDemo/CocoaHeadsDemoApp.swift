@@ -15,21 +15,17 @@ struct CocoaHeadsDemoApp: App {
 // MARK: - Player
 
 struct Player: Equatable, Identifiable {
-    var id: Int64?
+    var id: UUID
     var name: String
     var score: Int
 }
 
 // Records
 // <https://github.com/groue/GRDB.swift/blob/master/README.md#records>
-extension Player: Codable, FetchableRecord, MutablePersistableRecord {
+extension Player: Codable, FetchableRecord, PersistableRecord {
     enum Columns {
         static let name = Column(CodingKeys.name)
         static let score = Column(CodingKeys.score)
-    }
-    
-    mutating func didInsert(with rowID: Int64, for column: String?) {
-        id = rowID
     }
 }
 
@@ -66,7 +62,7 @@ final class PlayerStore {
         var migrator = DatabaseMigrator()
         migrator.registerMigration("players") { db in
             try db.create(table: "player") { t in
-                t.autoIncrementedPrimaryKey("id")
+                t.column("id", .blob).notNull().primaryKey()
                 t.column("name", .text).notNull()
                 t.column("score", .integer).notNull()
             }
@@ -78,7 +74,6 @@ final class PlayerStore {
     
     func insertPlayer(_ player: Player) throws {
         try dbWriter.write { db in
-            var player = player
             try player.insert(db)
         }
     }
@@ -204,9 +199,9 @@ extension Player {
         "Victor", "Violette", "Wilfried", "Wilhelmina", "Yvon", "Yann",
         "Zazie", "Zoé"]
     
-    /// Creates a new player with random name and random score
     static func makeRandom() -> Player {
         Player(
+            id: UUID(),
             name: names.randomElement()!,
             score: 10 * Int.random(in: 0...100))
     }
