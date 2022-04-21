@@ -20,8 +20,8 @@ struct Player: Equatable, Identifiable {
     var score: Int
 }
 
-// Records
-// <https://github.com/groue/GRDB.swift/blob/master/README.md#records>
+/// Add database powers
+/// <https://github.com/groue/GRDB.swift/blob/master/README.md#records>
 extension Player: Codable, FetchableRecord, PersistableRecord {
     enum Columns {
         static let name = Column(CodingKeys.name)
@@ -29,8 +29,8 @@ extension Player: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-// Query interface requests
-// <https://github.com/groue/GRDB.swift/blob/master/README.md#requests>
+/// Define database requests
+/// <https://github.com/groue/GRDB.swift/blob/master/README.md#requests>
 extension Player {
     enum Ordering { case byName, byScore }
     
@@ -47,8 +47,8 @@ extension Player {
 // MARK: - PlayerStore
 
 final class PlayerStore {
-    // Database Connections
-    // <https://github.com/groue/GRDB.swift/blob/master/README.md#database-connections>
+    /// The database connection
+    /// <https://github.com/groue/GRDB.swift/blob/master/README.md#database-connections>
     private let dbWriter: DatabaseWriter
     
     init(dbWriter: DatabaseWriter) {
@@ -56,10 +56,11 @@ final class PlayerStore {
         try! databaseMigrator.migrate(dbWriter)
     }
     
-    // Migrations
-    // <https://github.com/groue/GRDB.swift/blob/master/Documentation/Migrations.md>
+    /// Define database migrations
+    /// <https://github.com/groue/GRDB.swift/blob/master/Documentation/Migrations.md>
     private var databaseMigrator: DatabaseMigrator {
         var migrator = DatabaseMigrator()
+        
         migrator.registerMigration("players") { db in
             try db.create(table: "player") { t in
                 t.column("id", .blob).notNull().primaryKey()
@@ -67,11 +68,14 @@ final class PlayerStore {
                 t.column("score", .integer).notNull()
             }
         }
+        
         return migrator
     }
-    
-    // MARK: - Database Access
-    
+}
+
+// MARK: - PlayerStore: Database Access
+
+extension PlayerStore {
     func insertPlayer(_ player: Player) throws {
         try dbWriter.write { db in
             try player.insert(db)
@@ -84,11 +88,13 @@ final class PlayerStore {
         }
     }
     
-    // Observation de la base de données
-    // <https://github.com/groue/GRDB.swift/blob/master/README.md#valueobservation>
+    /// Observes the database
+    /// <https://github.com/groue/GRDB.swift/blob/master/README.md#valueobservation>
     func playersPublisher(ordering: Player.Ordering) -> AnyPublisher<[Player], Error> {
         ValueObservation
-            .tracking(Player.order(ordering).fetchAll)
+            .tracking { db in
+                try Player.order(ordering).fetchAll(db)
+            }
             .publisher(in: dbWriter, scheduling: .immediate)
             .eraseToAnyPublisher()
     }
@@ -96,8 +102,8 @@ final class PlayerStore {
 
 // MARK: - SwiftUI Environment
 
-// SwiftUI environment key
-// <https://developer.apple.com/documentation/swiftui/environmentkey>
+/// A SwiftUI environment key for the PlayerStore
+/// <https://developer.apple.com/documentation/swiftui/environmentkey>
 private struct PlayerStoreKey: EnvironmentKey {
     static let defaultValue = PlayerStore.makeDemoStore(count: 4)
 }
@@ -112,39 +118,49 @@ extension EnvironmentValues {
 // MARK: - PlayerListView
 
 struct PlayerListView: View {
+    /// Provides write access
     @Environment(\.playerStore) var playerStore
     
-    // @Query property wrapper
-    // <http://github.com/groue/GRDBQuery>
-    @Query(PlayerListRequest(ordering: .byScore), in: \.playerStore)
+    /// Always up-to-date list of players
+    /// <http://github.com/groue/GRDBQuery>
+    @Query(PlayerListRequest(), in: \.playerStore)
     var players: [Player]
     
     var body: some View {
         NavigationView {
-            List(players) { player in
-                HStack {
-                    Text(player.name)
-                    Spacer()
-                    Text("\(player.score) points")
-                }
-            }
-            .animation(.default, value: players)
+            playerList
+            .toolbar { toolbarContent }
             .navigationTitle("\(players.count) Players")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    ToggleOrderingButton(ordering: $players.ordering)
-                }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        try! playerStore.deleteAllPlayers()
-                    } label: { Image(systemName: "trash") }
-                }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        try! playerStore.insertPlayer(Player.makeRandom())
-                    } label: { Image(systemName: "plus") }
-                }
+        }
+    }
+}
+
+extension PlayerListView {
+    private var playerList: some View {
+        List(players) { player in
+            HStack {
+                Text(player.name)
+                Spacer()
+                Text("\(player.score) points")
             }
+        }
+        .animation(.default, value: players)
+    }
+    
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            ToggleOrderingButton(ordering: $players.ordering)
+        }
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button {
+                try! playerStore.deleteAllPlayers()
+            } label: { Image(systemName: "trash") }
+        }
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button {
+                try! playerStore.insertPlayer(Player.makeRandom())
+            } label: { Image(systemName: "plus") }
         }
     }
 }
@@ -158,13 +174,17 @@ struct ToggleOrderingButton: View {
             Button {
                 ordering = .byName
             } label: {
-                Label("Score", systemImage: "arrowtriangle.down.fill").labelStyle(.titleAndIcon)
+                Label("Score", systemImage: "arrowtriangle.down.fill")
+                    .labelStyle(.titleAndIcon)
+                    .environment(\.layoutDirection, .rightToLeft)
             }
         case .byName:
             Button {
                 ordering = .byScore
             } label: {
-                Label("Name", systemImage: "arrowtriangle.up.fill").labelStyle(.titleAndIcon)
+                Label("Name", systemImage: "arrowtriangle.up.fill")
+                    .labelStyle(.titleAndIcon)
+                    .environment(\.layoutDirection, .rightToLeft)
             }
         }
     }
@@ -172,13 +192,12 @@ struct ToggleOrderingButton: View {
 
 // MARK: - PlayerListRequest
 
-struct PlayerListRequest {
-    var ordering: Player.Ordering
-}
-
-// Queryable protocol
-// <http://github.com/groue/GRDBQuery>
-extension PlayerListRequest: Queryable {
+/// Feeds SwiftUI views with the list of players
+/// <http://github.com/groue/GRDBQuery>
+struct PlayerListRequest: Queryable {
+    /// The ordering of the list
+    var ordering: Player.Ordering = .byScore
+    
     static var defaultValue: [Player] { [] }
     
     func publisher(in playerStore: PlayerStore) -> AnyPublisher<[Player], Error> {
