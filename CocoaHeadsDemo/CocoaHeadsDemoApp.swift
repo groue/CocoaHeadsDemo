@@ -126,7 +126,7 @@ extension PlayerStore {
                       FROM player
                       ORDER BY score
                       LIMIT 2 - (SELECT COUNT(*) FROM player) % 2
-                      OFFSET (SELECT (COUNT(*) - 1) / 2 FROM \(Player.self)))
+                      OFFSET (SELECT (COUNT(*) - 1) / 2 FROM player))
                 """).fetchOne(db)
             
             return Statistics(
