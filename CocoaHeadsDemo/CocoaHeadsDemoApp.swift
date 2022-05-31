@@ -238,10 +238,8 @@ struct PlayerListToolbar: ToolbarContent {
 /// Feeds SwiftUI views with the list of players
 /// <http://github.com/groue/GRDBQuery>
 struct PlayerListRequest: Queryable {
-    /// The ordering of the list
-    var ordering: Player.Ordering = .byScore
-    
-    static var defaultValue: [Player] { [] }
+    static let defaultValue: [Player] = []
+    var ordering = Player.Ordering.byScore
     
     func publisher(in playerStore: PlayerStore)
     -> AnyPublisher<[Player], Error>
