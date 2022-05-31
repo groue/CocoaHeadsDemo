@@ -8,8 +8,8 @@ struct CocoaHeadsDemoApp: App {
     var body: some Scene {
         WindowGroup {
             TabView {
-                PlayerListView().tabItem { Label("List", systemImage: "list.bullet") }
-                StatisticsView().tabItem { Label("Stats", systemImage: "chart.pie") }
+                PlayerListView().tabItem { Label("Players", systemImage: "person.3.sequence") }
+                StatisticsView().tabItem { Label("Statistics", systemImage: "chart.pie") }
             }
         }
     }
