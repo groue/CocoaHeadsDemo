@@ -8,8 +8,12 @@ struct CocoaHeadsDemoApp: App {
     var body: some Scene {
         WindowGroup {
             TabView {
-                PlayerListView().tabItem { Label("Players", systemImage: "person.3.sequence") }
-                StatisticsView().tabItem { Label("Statistics", systemImage: "chart.pie") }
+                PlayerListView().tabItem {
+                    Label("Players", systemImage: "person.3.sequence")
+                }
+                StatisticsView().tabItem {
+                    Label("Statistics", systemImage: "chart.pie")
+                }
             }
         }
     }
@@ -106,7 +110,9 @@ extension PlayerStore {
 extension PlayerStore {
     /// Observes the list of players in the database
     /// <https://github.com/groue/GRDB.swift/blob/master/README.md#valueobservation>
-    func publishPlayers(ordering: Player.Ordering) -> AnyPublisher<[Player], Error> {
+    func publishPlayers(ordering: Player.Ordering)
+    -> AnyPublisher<[Player], Error>
+    {
         ValueObservation.tracking { db in
             try Player.order(ordering).fetchAll(db)
         }
@@ -115,11 +121,20 @@ extension PlayerStore {
     }
     
     /// Observes the player statistics
-    func publishStatistics() -> AnyPublisher<Statistics, Error> {
+    func publishStatistics()
+    -> AnyPublisher<Statistics, Error>
+    {
         ValueObservation.tracking { db in
             let numberOfPlayers = try Player.fetchCount(db)
-            let maximumScore = try Player.select(max(Player.Columns.score), as: Int.self).fetchOne(db)
-            let minimumScore = try Player.select(min(Player.Columns.score), as: Int.self).fetchOne(db)
+            
+            let maximumScore = try Player
+                .select(max(Player.Columns.score), as: Int.self)
+                .fetchOne(db)
+            
+            let minimumScore = try Player
+                .select(min(Player.Columns.score), as: Int.self)
+                .fetchOne(db)
+            
             let medianScore = try SQLRequest<Int>("""
                 SELECT AVG(score)
                 FROM (SELECT score
@@ -228,7 +243,9 @@ struct PlayerListRequest: Queryable {
     
     static var defaultValue: [Player] { [] }
     
-    func publisher(in playerStore: PlayerStore) -> AnyPublisher<[Player], Error> {
+    func publisher(in playerStore: PlayerStore)
+    -> AnyPublisher<[Player], Error>
+    {
         playerStore.publishPlayers(ordering: ordering)
     }
 }
@@ -275,7 +292,7 @@ struct StatisticsView: View {
         
         init(playerStore: PlayerStore) {
             // Inject the playerStore in the @StateObject view model
-            _viewModel = StateObject(wrappedValue: StatisticsViewModel(playerStore: playerStore))
+            _viewModel = StateObject(wrappedValue: .init(playerStore: playerStore))
         }
         
         var body: some View {
